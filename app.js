@@ -1,6 +1,8 @@
 $(document).ready(function () {
   const api = '/api/';
   var logined = false, user_info;
+  var where='home';
+  
   /*--Cookie---------------------------------------*/
   function setCookie(name, value, days) {
     let expires = "";
@@ -32,6 +34,10 @@ $(document).ready(function () {
   }
   function delLocal(name) {
     localStorage.removeItem(name);
+  }
+  function set_store(key,value){
+    setCookie(key,value,30);
+    setLocal(key,value);
   }
   function get_store(key) {
     let value = getCookie(key);
@@ -72,37 +78,21 @@ $(document).ready(function () {
   }
   var NAME_MAP = [];
   function get_name_zone() {
-    $.post(api,
-      {
-        action: "get_zone_name"
-      },
-      function (data) {
-        var json = JSON.parse(data);
+    $.get('/api/get_zone_name',
+      function (json) {
         for (var i = 1; i <= MAX_ZONE; i++) {
           NAME_MAP[i - 1] = json['z' + i];
         }
-
-        /*
-        var s = '';
-        s += 'Cập nhật: <span class="time-update"></span>';
-        s += '<ol style="line-height:10px" id="ds_zone_3d">';
-        for (var i = 1; i <= MAX_ZONE; i++) {
-          s += '<li class="list-zones" data-index="' + (i - 1) + '"><img id="ilz' + i + '" src="/images/loading.gif" style="height:20px;padding-bottom:6px;" align="middle"> ' + json['z' + i] + '</li>';
-        }
-        s += '</ol>';
-        $('#list-zone').html(s);
-        /**/
-
         var timerAPI = setInterval(function () {
-          autoGetData();
+          if(where != 'fire')
+          	autoGetData();
         }, 1000)
       });
   }
 
   function autoGetData() {
-    $.post(api,
-      function (data) {
-        var json = JSON.parse(data);
+    $.get('/api/fire',
+      function (json) {
         var st = time_diff(json.time)
         $('.time-update').html(st);
         var z = json.data;
@@ -127,12 +117,8 @@ $(document).ready(function () {
   var water_sensor;
   function genWater() {
     var old_sensor = $('#ds-cam-bien').val();
-    $.post(api,
-      {
-        action: "get_water_sensor"
-      },
-      function (data) {
-        var json = JSON.parse(data);
+    $.get('/api/get_water_sensor',
+      function (json) {
         data = json.data;
         water_sensor = data;
         /**
@@ -200,13 +186,9 @@ $(document).ready(function () {
         }
 
         var timerRandom = setInterval(function () {
-        	
-        	$.post(api,
-				{
-					action: "get_water_sensor"
-				},
-				function (data) {
-					var json = JSON.parse(data);
+        	if(where!='water')return;
+        	$.get('/api/water',
+				function (json) {
 					data = json.data;
 					water_sensor = data;
 					//lấy từ API sau này ra data thật từ action=get_water_sensor_quick
@@ -242,12 +224,13 @@ $(document).ready(function () {
   });
   function load3d(load) {
     if (load)
-      $('#ifr3dapp').attr('src', '/app/3d/');
+      $('#ifr3dapp').attr('src', '/app/3d/index.html?m=251117');
     else
       $('#ifr3dapp').attr('src', '');
     $('#tudien').attr('src', '');
   }
   $('.cmdFire').click(function () {
+  	where='fire';
     $('#img_logo').attr('src', "images/fire-icon.png")
     $('#tieu-de').html('HỆ THỐNG BÁO CHÁY');
     $('.z-item').hide();
@@ -255,6 +238,7 @@ $(document).ready(function () {
     load3d(true);
   });
   $('.cmdWater').click(function () {
+  	where='water';
     $('#img_logo').attr('src', "images/water-icon.png")
     $('#tieu-de').html('THÔNG SỐ NƯỚC THẢI');
     $('.z-item').hide();
@@ -262,6 +246,7 @@ $(document).ready(function () {
     load3d(false);
   });
   $('#cmdSetting').click(function () {
+  	where='setting';
     $('#img_logo').attr('src', "images/setting-icon.png")
     $('#tieu-de').html('CÀI ĐẶT HỆ THỐNG');
     $('.z-item').hide();
@@ -269,6 +254,7 @@ $(document).ready(function () {
     load3d(false);
   });
   $('.cmdTienIch').click(function () {
+  	where='tienich';
     $('#img_logo').attr('src', "images/tien-ich-icon.png")
     $('#tieu-de').html('GIÁM SÁT TỦ ĐIỆN');
     $('.z-item').hide();
@@ -277,6 +263,7 @@ $(document).ready(function () {
     $('#tudien').attr('src', "/tudien/app.html");
   });
   $('#cmdAbout').click(function () {
+  	where='about';
     $('#img_logo').attr('src', "images/about-icon.png")
     $('#tieu-de').html('GIỚI THIỆU PHẦN MỀM');
     $('.z-item').hide();
@@ -320,12 +307,8 @@ $(document).ready(function () {
   const ZONE_NUM = 22;
   var ZONE_NAME;
   function show_list_zone() {
-    $.post(api,
-      {
-        action: "get_zone_name"
-      },
-      function (data) {
-        var json = JSON.parse(data);
+    $.get('/api/get_zone_name',
+      function (json) {
         ZONE_NAME = json;
         var s = '';
         s += '<table class="table table-hover table-striped">';
@@ -518,24 +501,20 @@ $(document).ready(function () {
                 ok: {}
               }
             });
-            $.post(api,
+            $.post('/api/login',
               {
-                action: "do_login",
                 uid: uid,
                 pwd: pwd,
               },
-              function (data) {
+              function (json) {
                 dialog_wait_login.close();
-                let json = JSON.parse(data);
                 logined = json.ok;
                 if (logined) {
                   user_info = json;
                   load_gui();
-                  localStorage.logined = data;
-                  setLocal("uid", json.uid)
-                  setLocal("ck", json.cookie)
-                  setCookie('uid', json.uid);
-                  setCookie('ck', json.cookie, 30);
+                  localStorage.logined = JSON.stringify(json);
+                  set_store('uid',json.uid);
+                  set_store('ck',json.ck);                  
                   dialogLogin.close();
                 } else {
                   load_gui();
@@ -607,14 +586,7 @@ $(document).ready(function () {
     dialogLogin.open();
   }
   function do_logout() {
-    let ck = get_store('ck');
-    let uid = get_store('uid');
-    $.post(api,
-      {
-        action: "do_logout",
-        uid: uid,
-        ck: ck
-      },
+    $.get('/api/logout',
       function (data) {
         let json = JSON.parse(data);
         if (json.ok) {
@@ -628,22 +600,14 @@ $(document).ready(function () {
     let ck = get_store('ck');
     let uid = get_store('uid');
     if (ck != null && uid != null) {
-      $.post(api,
-        {
-          action: "check_logined",
-          ck: ck,
-          uid: uid,
-        },
-        function (data) {
-          let json = JSON.parse(data);
+      $.get('/api/check_logined',
+        function (json) {
           logined = json.ok;
           if (logined) {
             user_info = json;
-            localStorage.logined = data;
-            setLocal("uid", json.uid)
-            setLocal("ck", json.cookie)
-            setCookie('uid', json.uid);
-            setCookie('ck', json.cookie, 30);
+            localStorage.logined = JSON.stringify(json);
+            set_store('uid',json.uid);
+            set_store('ck',json.ck);
             load_gui();
           } else {
             do_login();
@@ -660,7 +624,7 @@ $(document).ready(function () {
       get_name_zone();
       genWater();
       $('.show-after-login').show();
-      $('#user-info').html("Xin chào " + user_info.rolename + ": " + user_info.fullname);
+      $('#user-info').html("Xin chào " + user_info.uid );
 
       //CHỌN FIRE OR WATER: z-home show lên
       var q = get_store("quick");
