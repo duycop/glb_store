@@ -242,18 +242,18 @@ border: 3px solid red;
   padding-bottom:3px;
 }
 .bg1{
-	background-image:url('/images/bg1.png');
+	background-image:url('images/bg1.png');
 }
 .bg2{
-	background-image:url('/images/bg2.png');
+	background-image:url('images/bg2.png');
 }
 .bg1.bg-error{
-	background-image:url('/images/bg1e.png') !important;
+	background-image:url('images/bg1e.png') !important;
 	color:yellow !important;
 	animation: blink 1s infinite;
 }
 .bg2.bg-error{
-	background-image:url('/images/bg2e.png') !important;
+	background-image:url('images/bg2e.png') !important;
 	color:yellow !important;
 	animation: blink 1s infinite;
 }
